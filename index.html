@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Live Location Tracker</title>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <style>
+        #map { height: 400px; width: 100%; }
+    </style>
+</head>
+<body>
+    <h1>Live Location Tracker</h1>
+    <label for="username">Enter your name:</label>
+    <input type="text" id="username" placeholder="Your Name" />
+    <button onclick="startTracking()">Start Tracking</button>
+
+    <h2>Tracked Locations</h2>
+    <div id="map"></div>
+
+    <script>
+        let trackingInterval;
+        let map = L.map('map').setView([0, 0], 2);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: 'Map data &copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        function startTracking() {
+            const username = document.getElementById('username').value.trim();
+            if (!username) {
+                alert('Please enter your name.');
+                return;
+            }
+
+            if (navigator.geolocation) {
+                trackingInterval = setInterval(() => {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => sendLocation(username, position),
+                        (error) => console.error('Error getting location:', error.message)
+                    );
+                }, 5000);
+
+                setInterval(fetchLocations, 5000);
+            } else {
+                alert('Geolocation is not supported by this browser.');
+            }
+        }
+
+        function sendLocation(name, position) {
+            const latitude = position.coords.latitude;
+            const longitude = position.coords.longitude;
+
+            fetch('/api/save-location', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, latitude, longitude })
+            })
+            .then(response => response.json())
+            .then(data => console.log('Location saved:', data))
+            .catch(error => console.error('Error:', error));
+        }
+
+        async function fetchLocations() {
+            const response = await fetch('/api/get-locations');
+            const data = await response.json();
+
+            map.eachLayer((layer) => {
+                if (layer instanceof L.Marker) {
+                    map.removeLayer(layer);
+                }
+            });
+
+            data.locations.forEach(loc => {
+                L.marker([loc.latitude, loc.longitude])
+                    .addTo(map)
+                    .bindPopup(`${loc.name}<br>${new Date(loc.created_at).toLocaleString()}`);
+            });
+        }
+    </script>
+</body>
+</html>
