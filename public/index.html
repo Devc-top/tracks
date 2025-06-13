@@ -12,16 +12,7 @@
       padding: 1rem;
       border: 1px solid #ddd;
       border-radius: 8px;
-    }
-    label, input {
-      display: block;
-      margin-bottom: 0.5rem;
-      width: 100%;
-    }
-    button {
-      padding: 0.5rem 1rem;
-      font-size: 1rem;
-      cursor: pointer;
+      text-align: center;
     }
     .message {
       margin-top: 1rem;
@@ -30,59 +21,70 @@
   </style>
 </head>
 <body>
-  <h1>Send Location</h1>
-  <form id="location-form">
-    <label for="latitude">Latitude:</label>
-    <input type="number" id="latitude" name="latitude" step="any" required />
-
-    <label for="longitude">Longitude:</label>
-    <input type="number" id="longitude" name="longitude" step="any" required />
-
-    <button type="submit">Send Location</button>
-  </form>
-
-  <div class="message" id="message"></div>
+  <h1>Sending your location...</h1>
+  <div class="message" id="message">Getting location...</div>
 
   <script>
-    const form = document.getElementById('location-form');
     const messageEl = document.getElementById('message');
 
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
+    function sendLocation(latitude, longitude) {
+      messageEl.textContent = 'Sending location to server...';
 
-      const latitude = parseFloat(form.latitude.value);
-      const longitude = parseFloat(form.longitude.value);
+      fetch('/api/send-location', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ latitude, longitude }),
+      })
+        .then(res => {
+          if (res.ok) {
+            messageEl.textContent = 'Location sent successfully!';
+            messageEl.style.color = 'green';
+          } else {
+            return res.text().then(text => {
+              throw new Error(text || 'Server error');
+            });
+          }
+        })
+        .catch(err => {
+          messageEl.textContent = 'Error sending location: ' + err.message;
+          messageEl.style.color = 'red';
+        });
+    }
 
-      if (isNaN(latitude) || isNaN(longitude)) {
-        messageEl.textContent = 'Please enter valid numbers for latitude and longitude.';
+    function handleLocationError(error) {
+      switch (error.code) {
+        case error.PERMISSION_DENIED:
+          messageEl.textContent = 'Permission denied. Please allow location access.';
+          break;
+        case error.POSITION_UNAVAILABLE:
+          messageEl.textContent = 'Location unavailable.';
+          break;
+        case error.TIMEOUT:
+          messageEl.textContent = 'Location request timed out.';
+          break;
+        default:
+          messageEl.textContent = 'An unknown error occurred.';
+          break;
+      }
+      messageEl.style.color = 'red';
+    }
+
+    window.onload = () => {
+      if (!navigator.geolocation) {
+        messageEl.textContent = 'Geolocation is not supported by your browser.';
         messageEl.style.color = 'red';
         return;
       }
 
-      messageEl.textContent = 'Sending...';
-      messageEl.style.color = 'black';
-
-      try {
-        const res = await fetch('/api/send-location', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ latitude, longitude }),
-        });
-
-        if (res.ok) {
-          messageEl.textContent = 'Location sent successfully!';
-          messageEl.style.color = 'green';
-          form.reset();
-        } else {
-          const text = await res.text();
-          messageEl.textContent = `Error: ${text}`;
-          messageEl.style.color = 'red';
-        }
-      } catch (err) {
-        messageEl.textContent = 'Network error, please try again.';
-        messageEl.style.color = 'red';
-      }
-    });
+      navigator.geolocation.getCurrentPosition(
+        position => {
+          const { latitude, longitude } = position.coords;
+          sendLocation(latitude, longitude);
+        },
+        handleLocationError,
+        { timeout: 10000 }
+      );
+    };
   </script>
 </body>
 </html>
